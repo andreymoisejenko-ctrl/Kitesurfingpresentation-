@@ -173,4 +173,66 @@ html[data-editor-entry="true"] #editorPanel::before{content:"✓ РЕДАКТО�
 </script>
 
 
+
+<style id="kite-final-layout-fixes">
+/* Slide 15: balanced WOO photo/screenshot composition */
+section[data-slide-id="slide-15"] .flex{align-items:stretch;gap:clamp(16px,2.2vw,32px)}
+section[data-slide-id="slide-15"] .half.woo-stack{display:grid!important;grid-template-rows:minmax(0,1fr) minmax(0,1fr)!important;gap:14px;min-height:0;align-self:stretch}
+section[data-slide-id="slide-15"] .woo-stack .photo{height:100%;min-height:0!important;border-radius:18px;border:1px solid #3e6574!important;background-color:#0a2432!important;box-shadow:0 14px 36px #0003}
+section[data-slide-id="slide-15"] .woo-stack .photo:first-child{background-size:cover!important;background-position:center!important}
+section[data-slide-id="slide-15"] .woo-stack .photo:last-child{background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important}
+section[data-slide-id="slide-15"] .cards{margin-top:20px;gap:10px}
+section[data-slide-id="slide-15"] .card{min-height:0;padding:16px}
+section[data-slide-id="slide-15"] .card h3{font-size:clamp(17px,1.45vw,22px)}
+/* Wind-speed unit: fixed baseline, no clipping / strange wrapping */
+#windSpeed{display:flex!important;align-items:baseline!important;gap:.16em!important;white-space:nowrap!important;line-height:1.15!important;overflow:visible!important;margin-block:22px}
+#windSpeed span{display:inline-block!important;font-size:clamp(23px,2.4vw,34px)!important;line-height:1!important;letter-spacing:0!important;white-space:nowrap!important;font-weight:650;flex-shrink:0}
+/* Native video, when hosted MP4 exists */
+#estoniaVideoShell video.kite-native{display:block!important;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#02080e;max-width:none;max-height:none}
+#estoniaVideoShell iframe.kite-video-hidden{display:none!important}
+@media(max-width:850px){section[data-slide-id="slide-15"] .flex{flex-direction:column;overflow-y:auto}section[data-slide-id="slide-15"] .woo-stack{grid-template-columns:1fr 1fr;grid-template-rows:minmax(180px,29vh)!important;min-height:180px}section[data-slide-id="slide-15"] .woo-stack .photo{min-height:180px!important}}
+</style>
+<script id="kite-final-behavior-fixes">
+(function(){
+'use strict';
+function setup(){
+  /* The built-in gear onclick already switches the equipment; block the extra album listener. */
+  document.querySelectorAll('#gearBtns [data-gear]').forEach(btn=>{
+    btn.addEventListener('click',event=>{
+      event.preventDefault();event.stopImmediatePropagation();
+      if(typeof btn.onclick==='function')btn.onclick.call(btn,event);
+    },true);
+  });
+  const gearPhoto=document.getElementById('gearPhoto');
+  if(gearPhoto)gearPhoto.addEventListener('click',e=>{e.stopPropagation();},true);
+  /* Normalize the current wind display on initial render and after slider movement. */
+  const speed=document.getElementById('speedSlider');
+  const wind=document.getElementById('windSpeed');
+  if(speed&&wind){
+    const normalize=()=>{
+      const unit=wind.querySelector('span');
+      if(unit){unit.textContent='m/s';unit.removeAttribute('style')}
+    };
+    normalize();speed.addEventListener('input',()=>queueMicrotask(normalize));
+  }
+  /* Prefer first-party MP4 playback and avoid the YouTube UI whenever the file exists. */
+  const shell=document.getElementById('estoniaVideoShell');
+  const player=document.getElementById('estoniaVideo');
+  const iframe=document.getElementById('estoniaYoutube');
+  if(shell&&player&&iframe){
+    const mp4='media/haademeeste.mp4';
+    fetch(mp4,{method:'HEAD'}).then(r=>{
+      if(!r.ok||!(r.headers.get('content-type')||'').match(/video|octet-stream/i))return;
+      player.hidden=false;player.removeAttribute('aria-hidden');
+      player.classList.add('kite-native');
+      player.controls=true;player.playsInline=true;player.preload='metadata';
+      player.src=mp4;player.load();
+      iframe.classList.add('kite-video-hidden');iframe.removeAttribute('src');
+      document.querySelectorAll('.youtube-help').forEach(el=>el.style.display='none');
+    }).catch(()=>{});
+  }
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup,{once:true});else setup();
+})();
+</script>
 </body></html>
