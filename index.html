@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="lv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Kaitsērfings — prezentācija</title><style>html,body{height:100%;margin:0;background:#091827;color:white;font:18px system-ui}main{min-height:100%;display:grid;place-items:center;text-align:center}small{opacity:.65}</style></head><body><main><div><h2>11 gadi dzenoties pēc vēja</h2><p id="status">Ielādē prezentāciju…</p><small>Lūdzu, uzgaidi.</small></div></main><script>
+(async()=>{
+ try {
+  const paths=Array.from({length:23},(_,i)=>'deck/part-'+String(i).padStart(2,'0')+'.txt');
+  const parts=await Promise.all(paths.map(async path=>{const r=await fetch(path);if(!r.ok)throw new Error(path+': HTTP '+r.status);return r.text()}));
+  document.open();document.write(parts.join(''));document.close();
+ }catch(err){document.getElementById('status').textContent='Neizdevās ielādēt prezentāciju: '+err.message;}
+})();
+</script></body></html>
