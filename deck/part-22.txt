@@ -169,6 +169,7 @@ html[data-editor-entry="true"] #editorPanel::before{content:"✓ РЕДАКТО�
  },true);
  // File System Access handles are restored when the file remains under the same browser origin.
  restoreHandle();updateButtonLabel();
+ for(const b of buttons){if(b)b.disabled=false}
 })();
 </script>
 
