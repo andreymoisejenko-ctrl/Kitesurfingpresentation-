@@ -1,0 +1,176 @@
+set.slideId,x]));
+      for(const currentSlide of slides()){
+        const previous=oldSlides.get(currentSlide.dataset.slideId);if(!previous)continue;
+        if(previous.dataset.note)currentSlide.dataset.note=previous.dataset.note;
+        // Keep new slide visibility for default content; restore explicit hides only.
+        if(previous.dataset.hide==='1'&&currentSlide.dataset.slideId!=='slide-18')currentSlide.dataset.hide='1';
+        const prevTexts=new Map([...previous.querySelectorAll('[data-edit-id]')].map(x=>[x.dataset.editId,x]));
+        for(const el of currentSlide.querySelectorAll('[data-edit-id]')){
+          const p=prevTexts.get(el.dataset.editId);if(!p)continue;
+          el.innerHTML=p.innerHTML;el.dataset.hidden=p.dataset.hidden||'0';importedTexts++;
+        }
+        const prevSlots=new Map([...previous.querySelectorAll('[data-slot-id]')].map(x=>[x.dataset.slotId,x]));
+        for(const el of currentSlide.querySelectorAll('[data-slot-id]')){
+          const p=prevSlots.get(el.dataset.slotId);if(!p)continue;
+          for(const attr of ['img','photoBg','thumbSrc','backdrop']){
+            if(p.dataset[attr]&&el.dataset[attr]!==p.dataset[attr]){el.dataset[attr]=p.dataset[attr];importedPhotos++}
+          }
+        }
+      }
+      // Keep any unchanged source paths with personal overrides from the previous version.
+      importedPhotos+=Object.keys(ov).length;
+      const newPhotoJson=document.getElementById('photo-overrides');
+      if(newPhotoJson)newPhotoJson.textContent=JSON.stringify(window.KITE_PHOTO_OVERRIDES).replace(/</g,'\\u003c');
+      const gearSlide=document.querySelector('[data-slide-id="slide-08"]');const safeSlide=document.querySelector('[data-slide-id="slide-18"]');
+      if(gearSlide&&safeSlide)gearSlide.after(safeSlide);
+      // Remove old photo background even if an older edit left it in the fifth slide.
+      const fifth=document.querySelector('[data-slide-id="slide-05"]');
+      if(fifth)fifth.querySelectorAll('.retro-item').forEach(x=>x.style.removeProperty('--dvd-photo'));
+      deck.loadBackdrops();document.querySelectorAll('.photo').forEach(deck.loadPhoto);
+      deck.render();onSlideChange();updateQuickEditor();scheduleSave();
+      setStatus('Импорт готов: '+importedTexts+' текстовых блоков, '+importedPhotos+' фото-настроек. Скачай обновлённый HTML после редактирования.');
+    }catch(err){setStatus('Не получилось импортировать HTML: '+err.message)}
+  };
+}
+
+window.kiteSaveBridge={exportHTML,snapshot,store,saveFile};
+if(document.documentElement.dataset.public!=='true')loadPersistedVideo();
+})();
+</script><script id="kite-editor-shortcut">
+document.addEventListener('keydown',function(e){
+ if((e.key==='e'||e.key==='E')&&!e.altKey&&!e.ctrlKey&&!e.metaKey&&!e.shiftKey&&
+ !e.target.closest('input,textarea,[contenteditable="true"]')&&
+ document.documentElement.dataset.public!=='true'){
+   document.getElementById('editorToggle')?.click();
+ }
+});
+</script><style id="kite-editor-entry-style">
+html[data-editor-entry="true"] #editorToggle{background:#d8ff73;color:#06121d;border-color:#d8ff73;box-shadow:0 8px 24px #0006}
+html[data-editor-entry="true"] body.editing #editorPanel{outline:2px solid #d8ff7355;outline-offset:-2px}
+html[data-editor-entry="true"] #editorPanel::before{content:"✓ РЕДАКТОР АКТИВЕН";display:block;color:#d8ff73;padding:10px 20px 0;font-size:11px;font-weight:800;letter-spacing:.14em}
+</style>
+<script id="kite-editor-autorun">
+(function(){
+ function launch(){
+   if(document.documentElement.dataset.public==='true')return;
+   const trigger=document.getElementById('editorToggle');
+   if(trigger&&!document.body.classList.contains('editing'))trigger.click();
+   if(!document.body.classList.contains('editing')){
+     document.body.classList.add('editing');
+     document.querySelectorAll('[data-edit-id]').forEach(el=>el.setAttribute('contenteditable','true'));
+   }
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',launch,{once:true});
+ else launch();
+ window.addEventListener('load',function(){if(!document.body.classList.contains('editing'))launch()},{once:true});
+})();
+</script>
+<script id="kite-save-one-click-v64">
+(function(){
+ 'use strict';
+ if(document.documentElement.dataset.public==='true')return;
+ const bridge=window.kiteSaveBridge;
+ if(!bridge){console.error('Kite editor save bridge unavailable');return;}
+ const {exportHTML,snapshot,store,saveFile}=bridge;
+ const buttons=['quickSaveFile','quickSavePanel'].map(id=>document.getElementById(id));
+ const toast=document.getElementById('quickSaveToast');
+ let saveHandle=null, busy=false, toastTimer=null;
+ const DB_NAME='kiteHTMLSavedFiles';
+ const DB_STORE='files';
+ const DB_KEY='kitesurfing-current-editor';
+ function openHandleDB(){return new Promise((ok,fail)=>{
+   if(!window.indexedDB){fail(new Error('IndexedDB unsupported'));return}
+   const r=indexedDB.open(DB_NAME,1);
+   r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(DB_STORE))r.result.createObjectStore(DB_STORE)};
+   r.onsuccess=()=>ok(r.result);r.onerror=()=>fail(r.error);
+ });}
+ async function rememberHandle(handle){
+   try{const d=await openHandleDB();await new Promise((ok,fail)=>{
+      const t=d.transaction(DB_STORE,'readwrite');t.objectStore(DB_STORE).put(handle,DB_KEY);
+      t.oncomplete=ok;t.onerror=()=>fail(t.error);
+   });d.close();}catch(e){} 
+ }
+ async function restoreHandle(){
+   try{const d=await openHandleDB();const h=await new Promise((ok,fail)=>{
+       const q=d.transaction(DB_STORE,'readonly').objectStore(DB_STORE).get(DB_KEY);
+       q.onsuccess=()=>ok(q.result);q.onerror=()=>fail(q.error);
+   });d.close();if(h && h.kind==='file'){saveHandle=h;updateButtonLabel();}}
+   catch(e){}
+ }
+ function showMessage(message,warning=false){
+   toast.textContent=message;toast.style.borderColor=warning?'#ffb6a466':'#d8ff7366';
+   toast.classList.add('show');clearTimeout(toastTimer);
+   toastTimer=setTimeout(()=>toast.classList.remove('show'),4600);
+   const st=document.getElementById('editorStatus');if(st)st.textContent=message;
+ }
+ function updateButtonLabel(){
+   for(const b of buttons){if(!b)continue;
+     b.textContent=saveHandle?'💾 Сохранить':'💾 Сохранить';
+     b.title=saveHandle?('Сохранить изменения в файл '+saveHandle.name):'Сохранить редактируемый HTML на компьютер';
+   }
+ }
+ // Called synchronously by an explicit click. The picker is opened BEFORE any
+ // awaited operation so the browser does not lose transient user activation.
+ async function savePresentation(){
+   if(busy)return;
+   busy=true;for(const b of buttons){if(b)b.disabled=true}
+   let mode='download';
+   try{
+     let handle=saveHandle;
+     if(!handle && typeof window.showSaveFilePicker==='function'){
+       try{
+         handle=await window.showSaveFilePicker({
+            suggestedName:'Kaitserfings_mans_redaktors.html',            types:[{description:'Редактируемая HTML-презентация',accept:{'text/html':['.html']}}]
+         });
+         saveHandle=handle;updateButtonLabel();
+         // Do not wait for IndexedDB before writing; file permissions may be transient.
+         rememberHandle(handle);
+       }catch(err){
+         if(err && err.name==='AbortError'){showMessage('Сохранение отменено: файл не выбран.',true);return}
+         // Safari, in-app previews, policy-limited contexts: fall back to file download.
+         handle=null;
+       }
+     }
+     const html=exportHTML(false);
+     if(handle){
+       try{
+         const perm=typeof handle.queryPermission==='function'?await handle.queryPermission({mode:'readwrite'}):'granted';
+         if(perm!=='granted' && typeof handle.requestPermission==='function'){
+           const result=await handle.requestPermission({mode:'readwrite'});
+           if(result!=='granted'){showMessage('Доступ к файлу не разрешён. Выбери сохранение снова.',true);return}
+         }
+         const output=await handle.createWritable();
+         await output.write(html);
+         await output.close();
+         mode='disk';
+       }catch(e){
+         // Do NOT claim disk save if permission/write failed.
+         saveHandle=null;updateButtonLabel();
+         showMessage('Не удалось перезаписать файл; скачиваю новую HTML-копию.',true);
+       }
+     }
+     if(mode!=='disk'){
+       const data=new Blob([html],{type:'text/html;charset=utf-8'});
+       saveFile(data,'Kaitserfings_mans_redaktors.html');
+       mode='download';
+     }
+     // The editor's existing draft store is a useful extra backup, not the only save.
+     try{await store(snapshot())}catch(e){}
+     if(mode==='disk')showMessage('✓ Сохранено в «'+handle.name+'» — фотографии и тексты внутри HTML.');
+     else showMessage('✓ HTML скачан. Открой последний файл из папки «Загрузки» для продолжения.');
+   }catch(e){showMessage('Не удалось сохранить: '+(e?.message||String(e)),true)}
+   finally{busy=false;for(const b of buttons){if(b)b.disabled=false}}
+ }
+ for(const button of buttons){if(button)button.addEventListener('click',savePresentation)}
+ window.addEventListener('keydown',function(e){
+   if((e.ctrlKey||e.metaKey) && !e.shiftKey && e.key.toLowerCase()==='s'){
+     e.preventDefault();e.stopImmediatePropagation();savePresentation();
+   }
+ },true);
+ // File System Access handles are restored when the file remains under the same browser origin.
+ restoreHandle();updateButtonLabel();
+})();
+</script>
+
+
+</body></html>
