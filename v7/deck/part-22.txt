@@ -1,4 +1,4 @@
-;dv.setUint32(0,0x04034b50,true);dv.setUint16(4,20,true);dv.setUint16(6,0x0800,true);dv.setUint16(8,0,true);
+dv.setUint32(0,0x04034b50,true);dv.setUint16(4,20,true);dv.setUint16(6,0x0800,true);dv.setUint16(8,0,true);
   dv.setUint32(14,val,true);dv.setUint32(18,bytes.length,true);dv.setUint32(22,bytes.length,true);dv.setUint16(26,name.length,true);h.set(name,30);parts.push(h,bytes);
   let c=new Uint8Array(46+name.length),dc=new DataView(c.buffer);dc.setUint32(0,0x02014b50,true);dc.setUint16(4,20,true);dc.setUint16(6,20,true);dc.setUint16(8,0x0800,true);dc.setUint16(10,0,true);dc.setUint32(16,val,true);dc.setUint32(20,bytes.length,true);dc.setUint32(24,bytes.length,true);dc.setUint16(28,name.length,true);dc.setUint32(42,offset,true);c.set(name,46);central.push(c);offset+=h.length+bytes.length;
  }
