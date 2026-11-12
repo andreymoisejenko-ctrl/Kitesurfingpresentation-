@@ -191,6 +191,25 @@ section[data-slide-id="slide-15"] .card h3{font-size:clamp(17px,1.45vw,22px)}
 #estoniaVideoShell video.kite-native{display:block!important;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#02080e;max-width:none;max-height:none}
 #estoniaVideoShell iframe.kite-video-hidden{display:none!important}
 @media(max-width:850px){section[data-slide-id="slide-15"] .flex{flex-direction:column;overflow-y:auto}section[data-slide-id="slide-15"] .woo-stack{grid-template-columns:1fr 1fr;grid-template-rows:minmax(180px,29vh)!important;min-height:180px}section[data-slide-id="slide-15"] .woo-stack .photo{min-height:180px!important}}
+
+/* Competition: show ONE uncropped portrait, not repeated tiled images. */
+section[data-slide-id="slide-competition"] .competition-layout{display:grid!important;grid-template-columns:minmax(0,1.35fr) minmax(250px,.65fr)!important;gap:clamp(18px,2.4vw,42px)!important;min-width:0!important}
+section[data-slide-id="slide-competition"] .competition-photo{width:100%!important;min-width:0!important;height:100%!important;min-height:280px!important;background-color:#091923!important;background-repeat:no-repeat!important;background-position:center center!important;background-size:contain!important;overflow:hidden!important;cursor:default!important}
+section[data-slide-id="slide-competition"] .competition-copy{min-width:0!important;overflow-wrap:break-word!important}
+section[data-slide-id="slide-competition"] .competition-copy .number{font-size:clamp(72px,8vw,138px)!important}
+#estoniaVideoShell{position:relative!important;overflow:hidden!important;background:#030c12!important}
+#estoniaVideoShell video{display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#030c12}
+#estoniaVideoShell video.kite-native{display:block!important}
+.kite-video-placeholder{box-sizing:border-box;position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:25px;background:radial-gradient(circle at 50% 35%,#143e4a,#03121b 78%);color:#e9f5f4}
+.kite-video-placeholder strong{font-size:clamp(17px,2vw,25px);letter-spacing:.13em}
+.kite-video-placeholder p{margin:0;color:#afcbd1;font-size:clamp(12px,1.2vw,17px)}
+.kite-video-play{display:grid;place-items:center;font-size:25px;color:#001b20;background:#55ead9;width:62px;height:62px;border-radius:50%;padding-left:3px}
+.kite-video-placeholder label{color:#b2e6dc;font-size:12px;margin-top:8px}
+.kite-video-input-row{display:flex;max-width:560px;width:100%;gap:8px}
+.kite-video-input-row input{flex:1;min-width:0;padding:12px;border:1px solid #507a82;background:#071b24;color:white;border-radius:10px;font-size:14px}
+.kite-video-input-row button{background:#55ead9;color:#052229;font-weight:750;border:0;border-radius:10px;padding:10px 16px;cursor:pointer}
+.kite-video-placeholder small{color:#809fa9;font-size:12px}
+@media(max-width:850px){section[data-slide-id="slide-competition"] .competition-layout{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(190px,1fr) auto!important}section[data-slide-id="slide-competition"] .competition-photo{min-height:190px!important}section[data-slide-id="slide-competition"] .competition-copy .number{font-size:60px!important}.kite-video-input-row{flex-direction:column}}
 </style>
 <script id="kite-final-behavior-fixes">
 (function(){
@@ -215,20 +234,40 @@ function setup(){
     };
     normalize();speed.addEventListener('input',()=>queueMicrotask(normalize));
   }
-  /* Prefer first-party MP4 playback and avoid the YouTube UI whenever the file exists. */
+  /* Native HTML5 video: local MP4 or externally hosted direct MP4 URL. */
   const shell=document.getElementById('estoniaVideoShell');
   const player=document.getElementById('estoniaVideo');
-  const iframe=document.getElementById('estoniaYoutube');
-  if(shell&&player&&iframe){
-    const mp4='media/haademeeste.mp4';
-    fetch(mp4,{method:'HEAD'}).then(r=>{
-      if(!r.ok||!(r.headers.get('content-type')||'').match(/video|octet-stream/i))return;
-      player.hidden=false;player.removeAttribute('aria-hidden');
-      player.classList.add('kite-native');
-      player.controls=true;player.playsInline=true;player.preload='metadata';
-      player.src=mp4;player.load();
-      iframe.classList.add('kite-video-hidden');iframe.removeAttribute('src');
-      document.querySelectorAll('.youtube-help').forEach(el=>el.style.display='none');
+  const placeholder=document.getElementById('estoniaEmpty');
+  if(shell&&player&&placeholder){
+    const input=document.getElementById('kiteMp4Url');
+    const apply=document.getElementById('kiteMp4Apply');
+    const params=new URLSearchParams(location.search);
+    const userUrl=params.get('video');
+    const localMp4='media/haademeeste.mp4';
+    const showVideo=(src)=>{
+      player.hidden=false;player.classList.add('kite-native');player.controls=true;
+      player.playsInline=true;player.preload='metadata';player.src=src;
+      placeholder.style.display='none';player.load();
+    };
+    player.addEventListener('error',()=>{
+      player.classList.remove('kite-native');player.removeAttribute('src');
+      placeholder.style.display='flex';
+    });
+    const validate=(url)=>{
+      try{const u=new URL(url,location.href);return ['http:','https:'].includes(u.protocol)?u.href:null}catch(e){return null}
+    };
+    if(apply&&input){
+      apply.addEventListener('click',()=>{
+        const src=validate(input.value.trim());if(!src){input.setCustomValidity('Ievadi derīgu https:// MP4 saiti');input.reportValidity();return}
+        input.setCustomValidity('');showVideo(src);
+        const address=new URL(location.href);address.searchParams.set('video',src);
+        history.replaceState(null,'',address.toString());
+      });
+      input.addEventListener('keydown',e=>{if(e.key==='Enter')apply.click()});
+    }
+    if(userUrl&&validate(userUrl)){if(input)input.value=userUrl;showVideo(validate(userUrl))}
+    else fetch(localMp4,{method:'HEAD'}).then(r=>{
+      if(r.ok&&(r.headers.get('content-type')||'').match(/video|octet-stream/i))showVideo(localMp4)
     }).catch(()=>{});
   }
 }
