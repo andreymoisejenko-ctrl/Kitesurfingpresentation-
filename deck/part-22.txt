@@ -248,6 +248,7 @@ function setup(){
     const params=new URLSearchParams(location.search);
     const userUrl=params.get('video');
     const localMp4='media/haademeeste.mp4';
+    const hostedMp4='https://pub-8f2d8018add54d968bd19c5f379b1500.r2.dev/haademeeste.mp4';
     const showVideo=(src)=>{
       player.hidden=false;player.classList.add('kite-native');player.controls=true;
       player.playsInline=true;player.preload='metadata';player.src=src;
@@ -262,14 +263,13 @@ function setup(){
     };
     if(apply&&input){
       apply.addEventListener('click',()=>{
-        const src=validate(input.value.trim());if(!src){input.setCustomValidity('Ievadi derīgu https:// MP4 saiti');input.reportValidity();return}
+        let src=validate(input.value.trim());if(src&&!/\.mp4(?:$|[?#])/i.test(src))src=hostedMp4;if(!src){input.setCustomValidity('Ievadi derīgu https:// MP4 saiti');input.reportValidity();return}
         input.setCustomValidity('');showVideo(src);
         const address=new URL(location.href);address.searchParams.set('video',src);
         history.replaceState(null,'',address.toString());
       });
       input.addEventListener('keydown',e=>{if(e.key==='Enter')apply.click()});
     }
-    const hostedMp4='https://pub-8f2d8018add54d968bd19c5f379b1500.r2.dev/haademeeste.mp4';
     // The hosted MP4 is the default; explicit ?video= URLs still take priority.
     // Legacy links sometimes contain only the R2 bucket root in ?video=.
     // Ignore those and prefer the actual MP4 object.
