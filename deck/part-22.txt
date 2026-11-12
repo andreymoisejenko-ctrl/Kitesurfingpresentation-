@@ -265,10 +265,11 @@ function setup(){
       });
       input.addEventListener('keydown',e=>{if(e.key==='Enter')apply.click()});
     }
-    if(userUrl&&validate(userUrl)){if(input)input.value=userUrl;showVideo(validate(userUrl))}
-    else fetch(localMp4,{method:'HEAD'}).then(r=>{
-      if(r.ok&&(r.headers.get('content-type')||'').match(/video|octet-stream/i))showVideo(localMp4)
-    }).catch(()=>{});
+    const hostedMp4='https://pub-8f2d8018add54d968bd19c5f379b1500.r2.dev/haademeeste.mp4';
+    // The hosted MP4 is the default; explicit ?video= URLs still take priority.
+    const chosen=(userUrl&&validate(userUrl))||hostedMp4;
+    if(input)input.value=chosen;
+    showVideo(chosen);
   }
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup,{once:true});else setup();
