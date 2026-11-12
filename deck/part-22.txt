@@ -215,6 +215,11 @@ section[data-slide-id="slide-competition"] .competition-copy .number{font-size:c
 .kite-video-input-row button{background:#55ead9;color:#052229;font-weight:750;border:0;border-radius:10px;padding:10px 16px;cursor:pointer}
 .kite-video-placeholder small{color:#809fa9;font-size:12px}
 @media(max-width:850px){section[data-slide-id="slide-competition"] .competition-layout{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(190px,1fr) auto!important}section[data-slide-id="slide-competition"] .competition-photo{min-height:190px!important}section[data-slide-id="slide-competition"] .competition-copy .number{font-size:60px!important}.kite-video-input-row{flex-direction:column}}
+/* Editor slide list: keep arrows visible, truncate long titles */
+.editor-slideitem{min-width:0}
+.editor-slideitem .jump{flex:1 1 auto!important;min-width:0!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+.editor-slideitem>button:not(.jump),.editor-slideitem .editor-slidenum{flex:0 0 auto}
+#editorSlideList{overflow-x:hidden}
 </style>
 <script id="kite-final-behavior-fixes">
 (function(){
